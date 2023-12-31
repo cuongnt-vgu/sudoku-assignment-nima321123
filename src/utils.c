@@ -54,19 +54,26 @@ bool is_solved(SudokuBoard *p_board)
 
 void print_solution(SudokuBoard *p_board)
 {
-    assert(is_solved(p_board));
+    if (!is_solved(p_board)) {
+        printf("The Sudoku puzzle is not yet solved.\n");
+        return;
+    }
+
+    char solution[BOARD_SIZE * BOARD_SIZE + 1]; // +1 for the null-terminating character
+    int index = 0;
 
     for (int i = 0; i < BOARD_SIZE; i++)
     {
         for (int j = 0; j < BOARD_SIZE; j++)
         {
-            int *candidates = get_candidates(&p_board->data[i][j]);
-            printf("%d", candidates[0]);
-            free(candidates);
+            solution[index++] = '0' + p_board->data[i][j].value; // Convert integer to character
         }
     }
-}
 
+    solution[index] = '\0'; // Null-terminate the string
+
+    printf("%s\n", solution);
+}
 void set_candidate(Cell *cell, int value)
 {
     cell->candidates[value - 1] = 1;
@@ -140,25 +147,30 @@ void load_sudoku(SudokuBoard *p_board, char *textData)
         }
     }
 }
-
+void update_num_candidates(Cell *cell) {
+    int count = 0;
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        if (cell->candidates[i] == 1) {
+            count++;
+        }
+    }
+    cell->num_candidates = count;
+}
 bool apply_constraint(Cell **p_cells, int value)
 {
     bool ret = false;
 
     for (int i = 0; i < BOARD_SIZE; i++)
     {
-        if (p_cells[i]->num_candidates > 1)
+        if (is_candidate(p_cells[i], value))
         {
-            if (is_candidate(p_cells[i], value))
-            {
-                unset_candidate(p_cells[i], value);
-                ret = true;
-            }
+            unset_candidate(p_cells[i], value);
+            update_num_candidates(p_cells[i]);  // Update the number of candidates
+            ret = true;
         }
     }
     return ret;
 }
-
 bool show_possible(SudokuBoard *p_board, Cell **p_solved_cells, int counter)
 {
     bool ret = false;
