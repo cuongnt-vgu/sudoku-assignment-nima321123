@@ -1,75 +1,90 @@
+#include "hidden_singles.h"
 #include "sudoku.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "utilis.h"
-#include "hidden_singles.h"
+#include <stdbool.h>
 
+// Function to find hidden singles in the board and update cell values
+int hidden_singles(SudokuBoard *board) {
+    int hiddenCount = 0;
 
-int hidden_singles(SudokuBoard *p_board) {
-    int num_detections = 0;
+    // Create a temporary array to store hidden singles
+    HiddenSingle hiddenArray[BOARD_SIZE * BOARD_SIZE];
 
-    // Loop through each row, column, and box
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        // Loop through each number from 1 to 9
-        for (int num = 1; num <= BOARD_SIZE; num++) {
-            int count_row = 0, count_col = 0, count_box = 0;
-            Cell *single_row = NULL, *single_col = NULL, *single_box = NULL;
+    // Iterate through each unsolved cell
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            Cell *cell = &board->data[row][col];
 
-            // Check rows, columns, and boxes simultaneously
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                Cell *cell_row = p_board->p_rows[i][j];
-                Cell *cell_col = p_board->p_cols[i][j];
-                Cell *cell_box = p_board->p_boxes[i][j];
+            // Check if cell is unsolved
+            if (cell->num_candidates > 1) {
+                int *cellCandidates = get_candidates(cell);
 
-                if (cell_row->value == 0 && cell_row->candidates[num - 1] == 1) {
-                    count_row++;
-                    single_row = cell_row;
+                // Checking each candidate in the candidates list
+                for (int candidateIndex = 0; candidateIndex < cell->num_candidates; candidateIndex++) {
+                    int isHidden[3] = {1, 1, 1};
+
+                    // Check uniqueness in the box
+                    int boxStartRow = (row / 3) * 3;
+                    int boxStartCol = (col / 3) * 3;
+                    for (int r = boxStartRow; r < boxStartRow + 3; r++) {
+                        if (isHidden[2] == 0) {
+                            break;
+                        }
+                        for (int column = boxStartCol; column < boxStartCol + 3; column++) {
+                            if ((r != row || column != col) && is_candidate(&board->data[r][column], cellCandidates[candidateIndex])) {
+                                // The candidate is not unique in the same box
+                                isHidden[2] = 0;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Check uniqueness in the row
+                    for (int column = 0; column < BOARD_SIZE; column++) {
+                        if (column != col && is_candidate(&board->data[row][column], cellCandidates[candidateIndex])) {
+                            // The candidate is not unique in that row
+                            isHidden[0] = 0;
+                            break;
+                        }
+                    }
+
+                    // Check uniqueness in the column
+                    for (int r = 0; r < BOARD_SIZE; r++) {
+                        if (r != row && is_candidate(&board->data[r][col], cellCandidates[candidateIndex])) {
+                            // The candidate is not unique in the column
+                            isHidden[1] = 0;
+                            break;
+                        }
+                    }
+
+                    // If the candidate is a hidden single, store it in the temporary array
+                    if (isHidden[0] || isHidden[1] || isHidden[2]) {
+                        printf("SINGLE: %d set to row %d, col %d\n",cellCandidates[candidateIndex],row+1,col+1);
+                        hiddenArray[hiddenCount].p_cell = cell;
+                        hiddenArray[hiddenCount].value = cellCandidates[candidateIndex];
+                        hiddenCount++;
+                    }
                 }
-
-                if (cell_col->value == 0 && cell_col->candidates[num - 1] == 1) {
-                    count_col++;
-                    single_col = cell_col;
-                }
-
-                if (cell_box->value == 0 && cell_box->candidates[num - 1] == 1) {
-                    count_box++;
-                    single_box = cell_box;
-                }
-            }
-
-            // Update hidden singles in row, column, and box
-            if (count_row == 1 && single_row->value != num) {
-                num_detections++;
-                single_row->value = num;
-                single_row->num_candidates = 0;
-                apply_constraint(p_board->p_rows[i], num);
-                printf("Detected hidden single in row %d, value: %d\n", i, num);  // Print when a hidden single is detected
-            }
-
-            if (count_col == 1 && single_col->value != num) {
-                num_detections++;
-                single_col->value = num;
-                single_col->num_candidates = 0;
-                apply_constraint(p_board->p_cols[i], num);
-                printf("Detected hidden single in column %d, value: %d\n", i, num);  // Print when a hidden single is detected
-            }
-
-            if (count_box == 1 && single_box->value != num) {
-                num_detections++;
-                single_box->value = num;
-                single_box->num_candidates = 0;
-                apply_constraint(p_board->p_boxes[i], num);
-                printf("Detected hidden single in box %d, value: %d\n", i, num);  // Print when a hidden single is detected
-            }
-
-            // Update the number of candidates for all cells
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                update_num_candidates(p_board->p_rows[i][j]);
-                update_num_candidates(p_board->p_cols[i][j]);
-                update_num_candidates(p_board->p_boxes[i][j]);
+                free(cellCandidates);
             }
         }
     }
 
-    return num_detections;
+    // Update the board with the found hidden singles
+    for (int index = 0; index < hiddenCount; index++) {
+        Cell *cell = hiddenArray[index].p_cell;
+        int value = hiddenArray[index].value;
+
+        // Update the cell's value
+        cell->value = value;
+        for (int i=0; i<BOARD_SIZE; i++){
+            if (i != (value-1)){
+                cell->candidates[i]=0;
+            }
+        }
+        cell->num_candidates = 1;
+    }
+
+    return hiddenCount;
 }

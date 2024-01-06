@@ -37,7 +37,7 @@ bool apply_constraint(Cell **p_cells, int value);
 bool is_in_list(Cell **p_array, int size, Cell *p);
 void print_candidate_num(SudokuBoard *p_board);
 void print_solution(SudokuBoard *p_board);
-
+bool is_candidate(Cell *cell, int value);
 void set_candidate(Cell *cell, int value);
 void unset_candidate(Cell *cell, int value);
 void set_candidates(Cell *cell, int *candidates, int size);

@@ -1,8 +1,10 @@
 #include "naked_pairs.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 int naked_pairs(SudokuBoard *p_board) {
     int changes_made = 0;
+    int naked_pairs_count = 0;  // Initialize a counter for naked pairs
 
     // Loop through each row, column, and box
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -15,6 +17,7 @@ int naked_pairs(SudokuBoard *p_board) {
                 // Check if both cells have only two candidates and they are the same
                 if (cell1->num_candidates == 2 && cell2->num_candidates == 2 &&
                     cell1->candidates[0] == cell2->candidates[0] && cell1->candidates[1] == cell2->candidates[1]) {
+                    naked_pairs_count++;  // Increment the count of naked pairs
                     // Remove these numbers from all other cells in the same row
                     for (int l = 0; l < BOARD_SIZE; l++) {
                         if (l != j && l != k) {
@@ -44,6 +47,6 @@ int naked_pairs(SudokuBoard *p_board) {
             }
         }
     }
-
-    return changes_made;
+    printf("Naked pairs found: %d\n", naked_pairs_count);  // Print the count of naked triples
+    return naked_pairs_count;  // Return the count of naked pairs
 }
